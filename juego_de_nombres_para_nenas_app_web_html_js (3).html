@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Juego de Nombres para Nenas</title>
+  <style>
+    :root { --bg:#0f172a; --fg:#e5e7eb; --muted:#94a3b8; --accent:#22d3ee; --card:#111827; --good:#22c55e; --bad:#ef4444; --maybe:#f59e0b; }
+    html,body { height:100%; }
+    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background:linear-gradient(180deg,#0b1220,#111827); color:var(--fg); }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 24px; }
+    header { display:flex; align-items:center; gap:12px; justify-content:space-between; }
+    h1 { font-size: clamp(22px, 3vw, 34px); margin:0; letter-spacing:.2px; }
+    .card { background: linear-gradient(180deg, #0b1220 0%, #0e1626 100%); border:1px solid #1f2937; padding: 18px; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+    .grid { display:grid; grid-template-columns: 1fr; gap: 16px; }
+    @media(min-width:900px){ .grid { grid-template-columns: 2fr 1fr; } }
+    .name { font-size: clamp(36px, 6vw, 64px); font-weight: 800; text-align:center; margin: 12px 0 6px; }
+    .sub { text-align:center; color: var(--muted); font-size: 14px; min-height: 20px; }
+    .controls { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top: 10px; }
+    button { cursor:pointer; border:none; border-radius:12px; padding: 12px 16px; font-weight:700; background:#1f2937; color:var(--fg); transition: transform .05s ease, background .2s ease; }
+    button:hover { background:#253043; }
+    .btn-like{ background: rgba(34,197,94,.1); border:1px solid rgba(34,197,94,.4);} .btn-like:hover{ background: rgba(34,197,94,.2);} 
+    .btn-dislike{ background: rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.4);} .btn-dislike:hover{ background: rgba(239,68,68,.2);} 
+    .btn-maybe{ background: rgba(245,158,11,.1); border:1px solid rgba(245,158,11,.4);} .btn-maybe:hover{ background: rgba(245,158,11,.2);} 
+    .tag { background:#0b1220; border:1px solid #22304b; padding:4px 8px; border-radius:999px; font-size:12px; color:#9fb2d7 }
+    .right p { color: var(--muted); font-size: 14px; margin: 0 0 10px; }
+    .stack { display:flex; flex-direction:column; gap:10px; }
+    label { display:block; font-size:13px; color:#9fb2d7; margin-bottom:4px; }
+    input[type="text"], select { width:100%; background:#0b1220; border:1px solid #22304b; color:var(--fg); border-radius:10px; padding:10px 12px; }
+    input[type="number"] { width:100%; background:#0b1220; border:1px solid #22304b; color:var(--fg); border-radius:10px; padding:10px 12px; }
+    .pill { display:flex; gap:8px; flex-wrap:wrap; }
+    .muted { color:var(--muted); font-size:12px; }
+    .cols { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .list { max-height: 260px; overflow:auto; border:1px dashed #253043; border-radius:10px; padding:10px; }
+    .list li { display:flex; justify-content:space-between; align-items:center; padding:6px 4px; border-bottom:1px dotted #1f2937; }
+    .list li:last-child{ border-bottom:none; }
+    .small { font-size:12px; }
+    .footer { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:12px; flex-wrap:wrap; }
+    .mode { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+    .dot.g { background:var(--good);} .dot.r{ background:var(--bad);} .dot.y{ background:var(--maybe);} 
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>🎀 Juego de Nombres para Nenas</h1>
+      <div class="mode">
+        <label for="twoPlayer">Modo 2 jugadores</label>
+        <input type="checkbox" id="twoPlayer" />
+        <select id="currentPlayer" title="Jugador actual">
+          <option value="P1">P1</option>
+          <option value="P2">P2</option>
+        </select>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- LEFT: play area -->
+      <div class="card">
+        <div class="pill">
+          <span class="tag" id="countLeft">0 por ver</span>
+          <span class="tag" id="countShown">0 vistos</span>
+          <span class="tag" id="countLiked"><span class="dot g"></span> <b id="likedNum">0</b> favoritos</span>
+          <span class="tag" id="countMaybe"><span class="dot y"></span> <b id="maybeNum">0</b> "capaz"</span>
+        </div>
+        <div class="name" id="name">—</div>
+        <div class="sub" id="meta"> </div>
+
+        <div class="controls">
+          <button class="btn-dislike" id="btnNo">❌ No</button>
+          <button class="btn-maybe" id="btnMaybe">🤔 Capaz</button>
+          <button class="btn-like" id="btnYes">❤️ Me gusta</button>
+          <button id="btnNext">➡️ Siguiente</button>
+          <button id="btnShuffle">🎲 Aleatorio</button>
+        </div>
+      </div>
+
+      <!-- RIGHT: filters and lists -->
+      <div class="card right">
+        <div class="stack">
+          <div class="cols">
+            <div>
+              <label>Empieza con</label>
+              <input id="startsWith" type="text" placeholder="Ej: M" maxlength="2" />
+            </div>
+            <div>
+              <label>Termina en</label>
+              <input id="endsWith" type="text" placeholder="Ej: a" maxlength="2" />
+            </div>
+          </div>
+          <div class="cols">
+            <div>
+              <label>Origen</label>
+              <select id="origin">
+                <option value="">Cualquiera</option>
+                <option>Latino</option>
+                <option>Griego</option>
+                <option>Hebreo</option>
+                <option>Germánico</option>
+                <option>Italiano</option>
+                <option>Francés</option>
+                <option>Inglés</option>
+                <option>Mapuche</option>
+                <option>Guaraní</option>
+                <option>Quechua</option>
+                <option>Vasco</option>
+                <option>Árabe</option>
+                <option>Catalán</option>
+                <option>Portugués</option>
+              </select>
+            </div>
+            <div>
+              <label>Sílabas (máx.)</label>
+              <input id="maxSyll" type="number" min="1" max="6" value="6" />
+            </div>
+          </div>
+          <div class="footer">
+            <div>
+              <button id="btnApply">Aplicar filtros</button>
+              <button id="btnReset">Reiniciar</button>
+            </div>
+            <div>
+              <button id="btnExport">📤 Exportar favoritos (CSV)</button>
+              <button id="btnClear">🧹 Limpiar listas</button>
+            </div>
+          </div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid #1f2937; margin:14px 0;"/>
+
+        <div class="cols">
+          <div>
+            <p><b>Favoritos</b> <span class="muted small" id="favOwner">(solo)</span></p>
+            <ul class="list" id="favList"></ul>
+          </div>
+          <div>
+            <p><b>"Capaz"</b></p>
+            <ul class="list" id="maybeList"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="muted small" style="margin-top:14px">Consejo: usá <b>🎲 Aleatorio</b> para mezclar y <b>Aplicar filtros</b> para acotar por letra, final, origen o sílabas. Todo se guarda en tu navegador (localStorage).</p>
+  </div>
+
+  <script>
+    // === Utilidades (definidas primero) ===
+    const $ = sel => document.querySelector(sel);
+    function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
+    function syllables(es){ return (es.toLowerCase().match(/[aeiouáéíóúü]+/g)||[]).length; }
+    function dedupeBy(arr, key){ const m=new Map(); for(const it of arr){ const k=key(it); if(!m.has(k)) m.set(k,it);} return [...m.values()]; }
+
+    // === Datos base ===
+    const RAW = `
+Alba|Latino|"blanco"
+Abril|Latino|"mes de abril"
+Ailén|Mapuche|"alegre"
+Alma|Latino|"alma"
+Amalia|Germánico|"trabajo"
+Amanda|Latino|"amada"
+Amparo|Latino|"protección"
+Ana|Hebreo|"gracia"
+Anastasia|Griego|"resurrección"
+Andrea|Griego|"valentía"
+Ángeles|Latino|"ángeles"
+Antonella|Italiano|"valiosa"
+Ariana|Italiano|"santa"
+Azul|Latino|"color azul"
+Bianca|Italiano|"blanca"
+Brenda|Germánico|"espada"
+Camila|Latino|"mensajera"
+Candela|Latino|"vela"
+Carla|Germánico|"fuerte"
+Catalina|Griego|"pura"
+Céleste|Francés|"celestial"
+Clara|Latino|"clara"
+Delfina|Latino|"delfín"
+Elena|Griego|"antorcha"
+Elisa|Hebreo|"Dios es juramento"
+Emma|Germánico|"universal"
+Emilia|Latino|"trabajo"
+Eva|Hebreo|"vida"
+Fabiana|Latino|"habas"
+Florencia|Latino|"florecer"
+Francesca|Italiano|"francesa"
+Gala|Latino|"fiesta"
+Guadalupe|Árabe|"río oculto"
+Inés|Griego|"pura"
+Isabella|Italiano|"Dios es juramento"
+Jazmín|Árabe|"flor"
+Jimena|Hebreo|"escuchar"
+Julia|Latino|"juvenil"
+Julieta|Latino|"pequeña Julia"
+Kiara|Italiano|"clara"
+Lara|Latino|"protección"
+Laura|Latino|"laurel"
+Leonor|Germánico|"luz"
+Lola|Español|"dolores"
+Lucía|Latino|"luz"
+Luna|Latino|"luna"
+Malena|Hebreo|"gracia"
+Manuela|Hebreo|"Dios con nosotros"
+Martina|Latino|"consagrado a Marte"
+Maya|Hebreo|"agua"
+Mía|Italiano|"mía"
+Milagros|Latino|"milagros"
+Mora|Latino|"mora"
+Morena|Latino|"morena"
+Nadia|Ruso|"esperanza"
+Naomi|Hebreo|"agradable"
+Natalia|Latino|"nacimiento"
+Noa|Hebreo|"movimiento"
+Olivia|Latino|"olivo"
+Oriana|Latino|"aurora"
+Paula|Latino|"pequeña"
+Pilar|Latino|"pilar"
+Renata|Latino|"renacida"
+Rocío|Latino|"rocío"
+Sara|Hebreo|"princesa"
+Sofía|Griego|"sabiduría"
+Sol|Latino|"sol"
+Tamara|Hebreo|"palmera"
+Teresa|Griego|"cosechar"
+Trinidad|Latino|"trinidad"
+Uma|Sánscrito|"brillo"
+Valentina|Latino|"valiente"
+Valeria|Latino|"fuerte"
+Vera|Ruso|"fe"
+Victoria|Latino|"victoria"
+Violeta|Latino|"violeta"
+Zoe|Griego|"vida"
+Zaira|Árabe|"flor que florece"
+Aitana|Vasco|"gloria"
+Maite|Vasco|"amada"
+Amaia|Vasco|"fin"
+Naiara|Vasco|"de Nájera"
+Ximena|Vasco|"escuchar"
+Ainhoa|Vasco|"lugar de peregrinaje"`;
+
+    function parseNames(text){
+      return text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(line=>{
+        const parts = line.split('|');
+        const name = (parts[0]||'').trim();
+        const origin = (parts[1]||'').trim();
+        const meaning = (parts[2]||'').trim().replace(/^"|"$/g,'');
+        return { name, origin, meaning };
+      });
+    }
+
+    let nameData = dedupeBy(parseNames(RAW), x=>x.name.toLowerCase());
+    if(!nameData.length){
+      // Fallback ultra simple por si algo falló en el parseo
+      nameData = [
+        {name:'Ana', origin:'Hebreo', meaning:'gracia'},
+        {name:'Lucía', origin:'Latino', meaning:'luz'},
+        {name:'Sofía', origin:'Griego', meaning:'sabiduría'}
+      ];
+    }
+
+    // === Estado & UI refs ===
+    let deck = [...nameData];
+    let shown = new Set();
+    let currentIdx = -1;
+
+    const ui = {
+      name: $('#name'), meta: $('#meta'),
+      countLeft: $('#countLeft'), countShown: $('#countShown'), likedNum: $('#likedNum'), maybeNum: $('#maybeNum'),
+      favList: $('#favList'), maybeList: $('#maybeList'), favOwner: $('#favOwner'),
+      startsWith: $('#startsWith'), endsWith: $('#endsWith'), origin: $('#origin'), maxSyll: $('#maxSyll'),
+      btnApply: $('#btnApply'), btnReset: $('#btnReset'), btnExport: $('#btnExport'), btnClear: $('#btnClear'),
+      btnNo: $('#btnNo'), btnMaybe: $('#btnMaybe'), btnYes: $('#btnYes'), btnNext: $('#btnNext'), btnShuffle: $('#btnShuffle'),
+      twoPlayer: $('#twoPlayer'), currentPlayer: $('#currentPlayer')
+    };
+
+    const LS = {
+      soloFavs: 'girlname_solo_favs',
+      soloMaybe: 'girlname_solo_maybe',
+      p1Favs: 'girlname_p1_favs',
+      p1Maybe: 'girlname_p1_maybe',
+      p2Favs: 'girlname_p2_favs',
+      p2Maybe: 'girlname_p2_maybe'
+    };
+
+    function getActiveStore(prefix){
+      if(!ui.twoPlayer.checked) return { fav: LS.soloFavs, maybe: LS.soloMaybe, label:'(solo)' };
+      if(ui.currentPlayer.value==='P1') return { fav: LS.p1Favs, maybe: LS.p1Maybe, label:'(P1)' };
+      return { fav: LS.p2Favs, maybe: LS.p2Maybe, label:'(P2)' };
+    }
+
+    function loadList(key){ try{ return JSON.parse(localStorage.getItem(key)||'[]'); }catch{ return []; } }
+    function saveList(key, arr){ localStorage.setItem(key, JSON.stringify(dedupeBy(arr, x=>x.name.toLowerCase()))); }
+
+    function updateCounters(){
+      ui.countLeft.textContent = `${deck.length - shown.size} por ver`;
+      ui.countShown.textContent = `${shown.size} vistos`;
+      const st = getActiveStore();
+      ui.likedNum.textContent = loadList(st.fav).length;
+      ui.maybeNum.textContent = loadList(st.maybe).length;
+      ui.favOwner.textContent = ` ${st.label}`;
+    }
+
+    function renderLists(){
+      const st = getActiveStore();
+      const favs = loadList(st.fav); const maybes = loadList(st.maybe);
+      ui.favList.innerHTML = favs.map(n=>`<li><span>${n.name}</span><button data-rm="${n.name}" data-where="fav">🗑</button></li>`).join('');
+      ui.maybeList.innerHTML = maybes.map(n=>`<li><span>${n.name}</span><button data-rm="${n.name}" data-where="maybe">🗑</button></li>`).join('');
+      updateCounters();
+    }
+
+    function nextName(){
+      if(!deck.length){
+        ui.name.textContent='Sin resultados';
+        ui.meta.textContent='Ajustá los filtros o tocá Reiniciar';
+        updateCounters();
+        return;
+      }
+      if(shown.size===deck.length){ shown = new Set(); }
+      let safety=0;
+      do { currentIdx = Math.floor(Math.random()*deck.length); safety++; if(safety>500) break; } while (shown.has(currentIdx));
+      shown.add(currentIdx);
+      const item = deck[currentIdx];
+      ui.name.textContent = item?.name || '—';
+      ui.meta.textContent = [item?.origin||'', item?.meaning||''].filter(Boolean).join(' • ');
+      updateCounters();
+    }
+
+    function applyFilters(){
+      const sw = (ui.startsWith.value||'').trim().toLowerCase();
+      const ew = (ui.endsWith.value||'').trim().toLowerCase();
+      const or = (ui.origin.value||'').trim();
+      const ms = parseInt(ui.maxSyll.value || '6', 10);
+
+      deck = nameData.filter(n=>{
+        const okStart = sw? n.name.toLowerCase().startsWith(sw): true;
+        const okEnd = ew? n.name.toLowerCase().endsWith(ew): true;
+        const okOrigin = or? (n.origin===or): true;
+        const okSyl = syllables(n.name) <= ms;
+        return okStart && okEnd && okOrigin && okSyl;
+      });
+      shown = new Set();
+      shuffle(deck);
+      nextName();
+    }
+
+    function resetFilters(){
+      ui.startsWith.value=''; ui.endsWith.value=''; ui.origin.value=''; ui.maxSyll.value=6;
+      deck = [...nameData]; shown = new Set(); shuffle(deck); nextName();
+    }
+
+    function likeCurrent(type){
+      const item = deck[currentIdx]; if(!item) return;
+      const st=getActiveStore();
+      const key = type==='fav'? st.fav : st.maybe;
+      const arr = loadList(key); arr.push(item); saveList(key, arr);
+      renderLists(); nextName();
+    }
+
+    function removeFromList(where, name){
+      const st=getActiveStore(); const key = where==='fav'? st.fav : st.maybe;
+      const arr = loadList(key).filter(x=>x.name!==name); saveList(key, arr); renderLists();
+    }
+
+    function exportCSV(){
+      const st = getActiveStore(); const favs = loadList(st.fav);
+      const rows = [['Nombre','Origen','Significado']].concat(favs.map(n=>[n.name,n.origin,n.meaning]));
+      const csv = rows.map(r=>r.map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'favoritos.csv'; a.click(); URL.revokeObjectURL(a.href);
+    }
+
+    function bind(){
+      ui.btnApply.addEventListener('click', applyFilters);
+      ui.btnReset.addEventListener('click', resetFilters);
+      ui.btnShuffle.addEventListener('click', ()=>{ shuffle(deck); shown=new Set(); nextName(); });
+      ui.btnNext.addEventListener('click', nextName);
+      ui.btnYes.addEventListener('click', ()=>likeCurrent('fav'));
+      ui.btnMaybe.addEventListener('click', ()=>likeCurrent('maybe'));
+      ui.btnNo.addEventListener('click', nextName);
+      ui.btnExport.addEventListener('click', exportCSV);
+      ui.btnClear.addEventListener('click', ()=>{ Object.values(LS).forEach(k=>localStorage.removeItem(k)); renderLists(); });
+      ui.twoPlayer.addEventListener('change', ()=>{ renderLists(); updateCounters(); });
+      ui.currentPlayer.addEventListener('change', ()=>{ renderLists(); updateCounters(); });
+      $('#favList').addEventListener('click', e=>{ const t=e.target; if(t.tagName==='BUTTON'){ removeFromList(t.dataset.where, t.dataset.rm); } });
+      $('#maybeList').addEventListener('click', e=>{ const t=e.target; if(t.tagName==='BUTTON'){ removeFromList(t.dataset.where, t.dataset.rm); } });
+      window.addEventListener('keydown', e=>{
+        if(['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName)) return;
+        if(e.key==='ArrowLeft') ui.btnNo.click();
+        else if(e.key==='ArrowUp') ui.btnMaybe.click();
+        else if(e.key==='ArrowRight') ui.btnYes.click();
+        else if(e.code==='Space') ui.btnNext.click();
+      });
+    }
+
+    // Init al cargar DOM
+    document.addEventListener('DOMContentLoaded', ()=>{
+      shuffle(deck); renderLists(); nextName();
+    });
+    bind();
+  </script>
+</body>
+</html>
